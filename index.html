@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>LoL Remote</title>
+  <style>
+    :root {
+      --bg: #0c0e12;
+      --card: #161a22;
+      --border: #262c38;
+      --text: #eef1f6;
+      --sub: #8b95a5;
+      --accent: #3b82f6;
+      --green: #10b981;
+      --red: #ef4444;
+      --gold: #eab308;
+      --purple: #8b5cf6;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0 auto;
+      max-width: 540px;
+      padding: max(14px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom)) 14px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 14px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 12px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+    .badge { font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 99px; background: #262c38; }
+    .badge.ok { background: rgba(16,185,129,0.2); color: var(--green); }
+    .badge.warn { background: rgba(234,179,8,0.2); color: var(--gold); }
+    .badge.err { background: rgba(239,68,68,0.2); color: var(--red); }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px; margin-bottom: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+    .hidden { display: none !important; }
+    h3 { margin: 0 0 12px 0; font-size: 16px; }
+    .sub { color: var(--sub); font-size: 13px; }
+    .toast-err {
+      margin-bottom: 12px; padding: 10px 12px; border-radius: 10px;
+      background: rgba(239,68,68,0.16); border: 1px solid rgba(239,68,68,0.4);
+      color: #fca5a5; font-size: 13px;
+    }
+
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700; color: #fff; cursor: pointer;
+      background: var(--accent);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      transition: transform 0.1s ease, opacity 0.15s;
+    }
+    button:active { opacity: 0.85; transform: scale(0.98); }
+    button:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; transform: none; }
+    .btn-green { background: var(--green); }
+    .btn-red { background: var(--red); }
+    .btn-dark { background: #262c38; }
+    .btn-gold { background: var(--gold); color: #000; }
+    .btn-purple { background: var(--purple); }
+
+    .pos-box {
+      background: #101319; padding: 12px; border-radius: 10px;
+      margin-bottom: 12px; border: 1px solid var(--border);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    .pos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .pos-field { display: flex; flex-direction: column; gap: 4px; }
+    .pos-field label { font-size: 11px; color: var(--sub); font-weight: 600; }
+
+    .turn-banner {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 14px; border-radius: 10px; margin-bottom: 12px;
+      background: #1e2430; font-weight: 700;
+    }
+    .turn-banner.my-turn { background: rgba(234,179,8,0.18); border: 1px solid var(--gold); color: var(--gold); }
+    .teams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; font-size: 12px; }
+    .team-box { background: #101319; padding: 8px; border-radius: 8px; }
+    .team-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+    .team-row.me { color: var(--gold); font-weight: 700; }
+    .mini-icon { width: 22px; height: 22px; border-radius: 50%; background: #262c38; object-fit: cover; }
+
+    .loadout-box {
+      background: #101319; padding: 10px; border-radius: 10px; margin-bottom: 12px;
+      display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    .loadout-row { display: flex; align-items: center; gap: 6px; }
+    select {
+      flex: 1; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+      background: #161a22; color: var(--text); font-size: 13px; font-weight: 600;
+    }
+    .btn-swap { width: auto; padding: 9px 12px; font-size: 14px; background: #262c38; }
+
+    .aram-box {
+      background: #101319; padding: 12px; border-radius: 10px; margin-bottom: 12px;
+      border: 1px solid var(--border);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    .aram-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .aram-header button { width: auto; padding: 8px 12px; font-size: 13px; }
+    .aram-sub { font-size: 11px; color: var(--sub); margin: 8px 0 6px 0; font-weight: 600; }
+    .bench-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+    .bench-item {
+      display: flex; flex-direction: column; align-items: center; min-width: 60px;
+      padding: 6px 4px; border-radius: 8px; background: #161a22; cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    .bench-item.card-pick {
+      border-color: var(--gold); background: rgba(234,179,8,0.12);
+    }
+    .bench-item img { width: 44px; height: 44px; border-radius: 8px; margin-bottom: 3px; }
+    .bench-item span { font-size: 10px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 56px; }
+
+    .selected-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: #101319; padding: 10px; border-radius: 10px; margin-bottom: 10px;
+    }
+    .selected-bar img { width: 42px; height: 42px; border-radius: 8px; background: #262c38; }
+    .selected-bar .actions { display: flex; gap: 6px; margin-left: auto; }
+    .selected-bar button { width: auto; padding: 10px 14px; font-size: 14px; }
+
+    input[type="text"] {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: #101319; color: var(--text); font-size: 15px; margin-bottom: 10px;
+    }
+    .champ-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      max-height: 40vh; overflow-y: auto; padding-right: 2px;
+    }
+    .champ-item {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 6px 4px; border-radius: 8px; background: #101319;
+      border: 2px solid transparent; cursor: pointer;
+    }
+    .champ-item.selected { border-color: var(--gold); background: rgba(234,179,8,0.12); }
+    .champ-item.disabled { opacity: 0.28; filter: grayscale(1); }
+    .champ-item img { width: 48px; height: 48px; border-radius: 8px; margin-bottom: 4px; }
+    .champ-item span { font-size: 11px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+
+    .footer-credit {
+      text-align: center;
+      font-size: 11px;
+      color: var(--sub);
+      opacity: 0.72;
+      margin-top: 16px;
+      padding-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <strong>LoL Remote</strong>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button id="btnAutoAccept" class="btn-dark" style="width:auto; padding:5px 10px; font-size:12px;" onclick="toggleAutoAccept()">자동수락 OFF</button>
+      <span id="phaseBadge" class="badge err">연결 대기중</span>
+    </div>
+  </div>
+
+  <div id="globalErr" class="toast-err hidden"></div>
+
+  <div id="inviteBox" class="card hidden" style="padding:12px 14px;">
+    <div style="font-size:13px; font-weight:700; margin-bottom:8px;">로비 초대</div>
+    <div id="inviteList" style="display:flex; flex-direction:column; gap:8px;"></div>
+  </div>
+
+  <div id="secDisconnected" class="card">
+    <h3>PC 클라이언트 대기 중</h3>
+    <p class="sub">PC에서 리그 오브 레전드 클라이언트를 실행하면 자동으로 연결됩니다.</p>
+  </div>
+
+  <div id="secNone" class="card hidden">
+    <h3>로비 생성</h3>
+    <div class="btn-grid">
+      <button onclick="api('/api/lobby/420')">솔로/듀오 랭크</button>
+      <button onclick="api('/api/lobby/440')" class="btn-dark">자유 랭크</button>
+      <button onclick="api('/api/lobby/400')" class="btn-dark">일반 (교차선택)</button>
+      <button onclick="api('/api/lobby/450')" class="btn-dark">칼바람 나락</button>
+      <button onclick="api('/api/lobby/2400')" class="btn-purple">칼바람 아수라장</button>
+      <button onclick="api('/api/lobby/1700')" class="btn-gold">아레나</button>
+    </div>
+    <button class="btn-dark" style="margin-top:10px; border:1px solid var(--border);" onclick="toggleCustomBox()">사용자 설정 로비</button>
+
+    <div id="customLobbyBox" class="hidden" style="margin-top:12px; background:#101319; padding:12px; border-radius:10px;">
+      <input type="text" id="customName" value="Custom Room" placeholder="방 이름" style="margin-bottom:8px; padding:10px; font-size:14px;" />
+      <div class="btn-grid" style="margin-bottom:8px;">
+        <select id="customMap" onchange="onCustomMapChange()">
+          <option value="11:CLASSIC">소환사의 협곡</option>
+          <option value="12:ARAM">칼바람 나락</option>
+          <option value="12:KIWI">칼바람 아수라장</option>
+        </select>
+        <select id="customSize">
+          <option value="5" selected>5 vs 5</option>
+          <option value="3">3 vs 3</option>
+          <option value="2">2 vs 2</option>
+          <option value="1">1 vs 1</option>
+        </select>
+      </div>
+      <div class="btn-grid" style="margin-bottom:10px;">
+        <select id="customPick">
+          <option value="6" selected>토너먼트 드래프트</option>
+          <option value="1">맹목적 선택</option>
+          <option value="2">교차 선택 (협곡)</option>
+          <option value="4">무작위 (올랜덤)</option>
+        </select>
+        <select id="customSpec">
+          <option value="AllAllowed" selected>관전: 전체</option>
+          <option value="LobbyAllowed">관전: 방 인원만</option>
+          <option value="FriendsAllowed">관전: 친구만</option>
+          <option value="NotAllowed">관전: 불가</option>
+        </select>
+      </div>
+      <button class="btn-green" onclick="createCustomLobby()">커스텀 방 만들기</button>
+    </div>
+  </div>
+
+  <div id="secLobby" class="card hidden">
+    <h3 id="lobbyTitle">로비 대기 중</h3>
+    <p id="customTeamInfo" class="sub hidden" style="margin-bottom:10px;"></p>
+
+    <div id="positionBox" class="pos-box hidden">
+      <div style="font-size:13px; font-weight:700;">선호 포지션</div>
+      <div class="pos-grid">
+        <div class="pos-field">
+          <label for="posFirst">1지망 (주 포지션)</label>
+          <select id="posFirst" onchange="updatePositions('first')"></select>
+        </div>
+        <div class="pos-field">
+          <label for="posSecond">2지망 (부 포지션)</label>
+          <select id="posSecond" onchange="updatePositions('second')"></select>
+        </div>
+      </div>
+    </div>
+
+    <div id="lobbyActions" style="display:flex; flex-direction:column; gap:10px;">
+      <button id="btnStartQueue" class="btn-green" onclick="api('/api/queue/start')">게임 찾기 (큐 시작)</button>
+      <button id="btnStartCustom" class="btn-gold hidden" onclick="api('/api/lobby/custom/start')">게임 시작 (사용자 설정)</button>
+      <div id="customTeamBtns" class="hidden" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+        <button class="btn-dark" style="border:1px solid var(--accent);" onclick="api('/api/lobby/custom/team/TEAM1')">블루팀</button>
+        <button class="btn-dark" style="border:1px solid var(--red);" onclick="api('/api/lobby/custom/team/TEAM2')">레드팀</button>
+        <button class="btn-dark" style="border:1px solid var(--border);" onclick="api('/api/lobby/custom/team/SPECTATOR')">관전</button>
+      </div>
+      <button class="btn-dark" onclick="api('/api/lobby/leave')">로비 나가기</button>
+    </div>
+  </div>
+
+  <div id="secMatchmaking" class="card hidden">
+    <h3>매칭 탐색 중...</h3>
+    <p class="sub" style="margin-bottom:14px;">큐가 잡히면 수락 버튼이 자동으로 뜹니다.</p>
+    <button class="btn-red" onclick="api('/api/queue/cancel')">매칭 취소</button>
+  </div>
+
+  <div id="secReady" class="card hidden">
+    <h3>매칭 완료!</h3>
+    <p id="readyTimer" class="sub" style="margin-bottom:14px;"></p>
+    <div class="btn-grid">
+      <button class="btn-green" onclick="api('/api/ready/accept')">수락</button>
+      <button class="btn-red" onclick="api('/api/ready/decline')">거절</button>
+    </div>
+  </div>
+
+  <div id="secChampSelect" class="card hidden">
+    <div id="turnBanner" class="turn-banner">
+      <span id="turnText">대기 중</span>
+      <span id="turnTimer">0s</span>
+    </div>
+
+    <div id="swapBanner" class="turn-banner my-turn hidden" style="gap:8px; flex-wrap:wrap;">
+      <span id="swapText">교환 요청</span>
+      <div style="display:flex; gap:6px;">
+        <button id="btnSwapAccept" class="btn-green" style="width:auto; padding:7px 12px; font-size:13px;">수락</button>
+        <button id="btnSwapDecline" class="btn-red" style="width:auto; padding:7px 12px; font-size:13px;">거절</button>
+      </div>
+    </div>
+
+    <div class="teams">
+      <div class="team-box" id="myTeamBox"></div>
+      <div class="team-box" id="theirTeamBox"></div>
+    </div>
+
+    <div id="aramBox" class="aram-box hidden">
+      <div class="aram-header">
+        <span style="font-size:13px; font-weight:700;">칼바람 / 아수라장 선택</span>
+        <button id="btnReroll" class="btn-gold" onclick="api('/api/aram/reroll')">🎲 주사위 (0)</button>
+      </div>
+      <div id="cardSection" class="hidden">
+        <div class="aram-sub">선택 가능한 챔피언 카드 (터치하여 변경)</div>
+        <div id="cardList" class="bench-list"></div>
+      </div>
+      <div class="aram-sub">팀 벤치 (터치하여 교체)</div>
+      <div id="benchList" class="bench-list"></div>
+    </div>
+
+    <div class="loadout-box">
+      <div class="loadout-row">
+        <select id="spellD" onchange="updateSpells()"></select>
+        <button class="btn-swap" onclick="swapSpells()">⇄</button>
+        <select id="spellF" onchange="updateSpells()"></select>
+      </div>
+      <div class="loadout-row">
+        <select id="runeSelect" onchange="updateRune()"></select>
+        <button class="btn-swap" onclick="loadRunes()">↻</button>
+      </div>
+      <div class="loadout-row">
+        <select id="skinSelect" onchange="updateSkin()"></select>
+        <button class="btn-swap" onclick="loadSkins()">↻</button>
+      </div>
+    </div>
+
+    <div id="draftArea">
+      <div class="selected-bar">
+        <img id="selImg" src="" alt="" />
+        <div>
+          <div id="selName" style="font-weight:700; font-size:14px;">챔피언 선택</div>
+          <div id="selHint" class="sub">아래에서 터치하세요</div>
+        </div>
+        <div class="actions">
+          <button id="btnHover" class="btn-dark" onclick="sendAction(false)" disabled>호버</button>
+          <button id="btnLock" class="btn-gold" onclick="sendAction(true)" disabled>확정</button>
+        </div>
+      </div>
+
+      <input type="text" id="searchInput" placeholder="챔피언 검색 (한글 / 영문)" oninput="filterChamps()" />
+      <div id="champGrid" class="champ-grid"></div>
+    </div>
+
+    <div id="chatBox" class="aram-box" style="margin-top:12px; margin-bottom:0;">
+      <div style="font-size:13px; font-weight:700; margin-bottom:6px;">픽창 채팅</div>
+      <div id="chatLog" style="max-height:110px; overflow-y:auto; font-size:12px; margin-bottom:8px; display:flex; flex-direction:column; gap:4px;"></div>
+      <div style="display:flex; gap:6px; margin-bottom:8px;">
+        <button class="btn-dark" style="padding:7px; font-size:12px;" onclick="sendQuickChat('잠시만요')">잠시만요</button>
+        <button class="btn-dark" style="padding:7px; font-size:12px;" onclick="sendQuickChat('스왑 ㄱ')">스왑 ㄱ</button>
+        <button class="btn-dark" style="padding:7px; font-size:12px;" onclick="sendQuickChat('죄송합니다')">죄송합니다</button>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="chatInput" placeholder="메시지 입력..." style="margin-bottom:0; padding:9px 10px; font-size:13px;" onkeydown="if(event.key==='Enter') sendChat()" />
+        <button style="width:auto; padding:0 14px; font-size:13px;" onclick="sendChat()">전송</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="secInProgress" class="card hidden">
+    <h3>게임 진행 중</h3>
+    <div class="btn-grid" style="margin-bottom:12px;">
+      <button id="btnMsBlue" class="btn-dark" onclick="openMultisearch('blue')">블루 OP.GG</button>
+      <button id="btnMsRed" class="btn-dark" onclick="openMultisearch('red')">레드 OP.GG</button>
+    </div>
+    <div id="ingameTeams" class="teams" style="margin-bottom:0;"></div>
+  </div>
+
+  <script>
+    const SPELLS = [
+      { id: 4, name: "점멸" },
+      { id: 14, name: "점화" },
+      { id: 12, name: "순간이동" },
+      { id: 11, name: "강타" },
+      { id: 7, name: "회복" },
+      { id: 3, name: "탈진" },
+      { id: 21, name: "방어막" },
+      { id: 6, name: "유체화" },
+      { id: 1, name: "정화" },
+      { id: 32, name: "표식(눈덩이)" }
+    ];
+
+    const POSITIONS = [
+      { id: "UNSELECTED", name: "미선택" },
+      { id: "TOP", name: "탑" },
+      { id: "JUNGLE", name: "정글" },
+      { id: "MIDDLE", name: "미드" },
+      { id: "BOTTOM", name: "원딜" },
+      { id: "UTILITY", name: "서폿" },
+      { id: "FILL", name: "상관없음" }
+    ];
+
+    const QUEUE_LABELS = {
+      420: "솔로/듀오 랭크",
+      440: "자유 랭크",
+      400: "일반 (교차선택)",
+      450: "칼바람 나락",
+      2400: "칼바람 아수라장",
+      1700: "아레나"
+    };
+
+    let allChamps = [];
+    let champMap = {};
+    let selectedChampId = null;
+    let currentAction = null;
+    let lastPhase = "";
+    let runesLoaded = false;
+    let lastPosFirst = "UNSELECTED";
+    let lastPosSecond = "UNSELECTED";
+    let errTimer = null;
+    let autoAcceptOn = false;
+    let skinsLoadedForChamp = null;
+    let lastIngameLoaded = false;
+    let ingameData = { team1: [], team2: [] };
+
+    async function toggleAutoAccept() {
+      const ok = await api("/api/settings/auto-accept", { enabled: !autoAcceptOn });
+      if (ok) {
+        autoAcceptOn = !autoAcceptOn;
+        updateAutoAcceptBtn();
+      }
+    }
+
+    function updateAutoAcceptBtn() {
+      const btn = document.getElementById("btnAutoAccept");
+      if (btn) {
+        btn.textContent = autoAcceptOn ? "자동수락 ON" : "자동수락 OFF";
+        btn.className = autoAcceptOn ? "btn-green" : "btn-dark";
+      }
+    }
+
+    function renderInvitations(list) {
+      const box = document.getElementById("inviteBox");
+      const el = document.getElementById("inviteList");
+      if (!list || !list.length) {
+        box.classList.add("hidden");
+        el.innerHTML = "";
+        return;
+      }
+      box.classList.remove("hidden");
+      el.innerHTML = list.map(inv => {
+        const qName = QUEUE_LABELS[inv.queueId] || "파티 초대";
+        return `
+          <div style="display:flex; justify-content:space-between; align-items:center; background:#101319; padding:8px 10px; border-radius:8px; border:1px solid var(--border);">
+            <div>
+              <div style="font-weight:700; font-size:13px;">${inv.fromSummonerName}</div>
+              <div class="sub" style="font-size:11px;">${qName}</div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-green" style="width:auto; padding:6px 10px; font-size:12px;" onclick="api('/api/invitations/${inv.invitationId}/accept')">수락</button>
+              <button class="btn-red" style="width:auto; padding:6px 10px; font-size:12px;" onclick="api('/api/invitations/${inv.invitationId}/decline')">거절</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderSwaps(swaps) {
+      const banner = document.getElementById("swapBanner");
+      if (!swaps || !swaps.length) {
+        banner.classList.add("hidden");
+        return;
+      }
+      const sw = swaps[0];
+      const kindLabel = sw.kind === "pick-order" ? "픽 순서 교환" : (sw.kind === "position" ? "포지션 교환" : "챔피언 교환");
+      document.getElementById("swapText").textContent = `${kindLabel} 요청 도착!`;
+      document.getElementById("btnSwapAccept").onclick = () => api(`/api/swap/${sw.kind}/${sw.id}/accept`);
+      document.getElementById("btnSwapDecline").onclick = () => api(`/api/swap/${sw.kind}/${sw.id}/decline`);
+      banner.classList.remove("hidden");
+    }
+
+    async function loadSkins() {
+      try {
+        const res = await fetch("/api/skins");
+        const skins = await res.json();
+        const sel = document.getElementById("skinSelect");
+        if (!skins || !skins.length) {
+          sel.innerHTML = `<option value="">스킨 목록 없음</option>`;
+          return;
+        }
+        sel.innerHTML = skins.map(s =>
+          `<option value="${s.id}" ${s.selected ? "selected" : ""}>스킨: ${s.name || "기본"}</option>`
+        ).join("");
+      } catch (_) {}
+    }
+
+    async function updateSkin() {
+      const skinId = parseInt(document.getElementById("skinSelect").value, 10);
+      if (skinId) {
+        await api("/api/skins", { skin_id: skinId });
+      }
+    }
+
+    async function loadChat() {
+      try {
+        const res = await fetch("/api/chat");
+        const msgs = await res.json();
+        const log = document.getElementById("chatLog");
+        if (!msgs || !msgs.length) {
+          log.innerHTML = `<div class="sub">채팅 기록 없음</div>`;
+          return;
+        }
+        const wasAtBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+        log.innerHTML = msgs.map(m => `
+          <div><span class="sub" style="font-size:11px;">${m.timestamp ? m.timestamp.split("T")[1]?.slice(0, 5) || "" : ""}</span> <span>${m.body}</span></div>
+        `).join("");
+        if (wasAtBottom) log.scrollTop = log.scrollHeight;
+      } catch (_) {}
+    }
+
+    async function sendChat() {
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim();
+      if (!text) return;
+      const ok = await api("/api/chat", { body: text });
+      if (ok) {
+        input.value = "";
+        loadChat();
+      }
+    }
+
+    async function sendQuickChat(msg) {
+      const ok = await api("/api/chat", { body: msg });
+      if (ok) loadChat();
+    }
+
+    async function loadIngame() {
+      try {
+        const res = await fetch("/api/ingame");
+        const data = await res.json();
+        ingameData = data || { team1: [], team2: [] };
+        renderIngameTeams();
+      } catch (_) {}
+    }
+
+    function renderIngameTeams() {
+      const cont = document.getElementById("ingameTeams");
+      const mkRow = (p, isBlue) => {
+        const c = champMap[p.championId];
+        const img = c ? `<img class="mini-icon" src="${c.img}"/>` : `<div class="mini-icon"></div>`;
+        const total = (p.wins || 0) + (p.losses || 0);
+        const winrate = total > 0 ? Math.round((p.wins / total) * 100) : 0;
+        const tierText = p.tier ? `${p.tier} ${p.division || ""}`.trim() : "UNRANKED";
+        const wrText = total > 0 ? `${winrate}% (${p.wins}승 ${p.losses}패)` : "";
+        return `
+          <div class="team-row" style="justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding:4px 0;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${img}
+              <div>
+                <div style="font-weight:600; font-size:12px;">${p.riotId || "소환사"}</div>
+                <div class="sub" style="font-size:10px;">${tierText} ${wrText}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      const t1 = ingameData.team1 || [];
+      const t2 = ingameData.team2 || [];
+      cont.innerHTML = `
+        <div class="team-box">
+          <div style="font-weight:700; color:var(--accent); margin-bottom:6px;">블루팀</div>
+          ${t1.length ? t1.map(p => mkRow(p, true)).join("") : '<div class="sub">정보 없음</div>'}
+        </div>
+        <div class="team-box">
+          <div style="font-weight:700; color:var(--red); margin-bottom:6px;">레드팀</div>
+          ${t2.length ? t2.map(p => mkRow(p, false)).join("") : '<div class="sub">정보 없음</div>'}
+        </div>
+      `;
+    }
+
+    function openMultisearch(side) {
+      const team = side === "blue" ? (ingameData.team1 || []) : (ingameData.team2 || []);
+      const names = team.map(p => p.riotId).filter(Boolean);
+      if (!names.length) {
+        showError("소환사 정보가 없습니다.");
+        return;
+      }
+      const url = `https://www.op.gg/multisearch/kr?summoners=${encodeURIComponent(names.join(","))}`;
+      window.open(url, "_blank");
+    }
+
+    function initSelects() {
+      const spellHtml = SPELLS.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+      document.getElementById("spellD").innerHTML = spellHtml;
+      document.getElementById("spellF").innerHTML = spellHtml;
+
+      const posHtml = POSITIONS.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+      document.getElementById("posFirst").innerHTML = posHtml;
+      document.getElementById("posSecond").innerHTML = posHtml;
+    }
+
+    function showError(msg) {
+      const box = document.getElementById("globalErr");
+      box.textContent = msg;
+      box.classList.remove("hidden");
+      if (errTimer) clearTimeout(errTimer);
+      errTimer = setTimeout(() => box.classList.add("hidden"), 5000);
+    }
+
+    function toggleCustomBox() {
+      document.getElementById("customLobbyBox").classList.toggle("hidden");
+    }
+
+    function onCustomMapChange() {
+      const val = document.getElementById("customMap").value;
+      const pickSel = document.getElementById("customPick");
+      if (val.startsWith("12:")) {
+        pickSel.value = "4";
+      } else {
+        pickSel.value = "6";
+      }
+    }
+
+    async function createCustomLobby() {
+      const [mapIdStr, gameMode] = document.getElementById("customMap").value.split(":");
+      const payload = {
+        name: document.getElementById("customName").value.trim() || "Custom Room",
+        map_id: parseInt(mapIdStr, 10),
+        game_mode: gameMode || "CLASSIC",
+        team_size: parseInt(document.getElementById("customSize").value, 10),
+        picking_policy: parseInt(document.getElementById("customPick").value, 10),
+        spectator_policy: document.getElementById("customSpec").value
+      };
+      const ok = await api("/api/lobby/custom", payload);
+      if (ok) {
+        document.getElementById("customLobbyBox").classList.add("hidden");
+      }
+    }
+
+    async function updatePositions(changed) {
+      const fEl = document.getElementById("posFirst");
+      const sEl = document.getElementById("posSecond");
+      let first = fEl.value;
+      let second = sEl.value;
+
+      if (first === "FILL") {
+        second = "UNSELECTED";
+        sEl.value = "UNSELECTED";
+        sEl.disabled = true;
+      } else {
+        sEl.disabled = false;
+        if (first !== "UNSELECTED" && first === second) {
+          if (changed === "first") {
+            second = lastPosFirst !== first ? lastPosFirst : "UNSELECTED";
+            sEl.value = second;
+          } else {
+            first = lastPosSecond !== second ? lastPosSecond : "UNSELECTED";
+            fEl.value = first;
+          }
+        }
+      }
+      lastPosFirst = first;
+      lastPosSecond = second;
+      await api("/api/lobby/positions", { first, second });
+    }
+
+    async function api(url, body = null) {
+      const opts = { method: "POST" };
+      if (body) {
+        opts.headers = { "Content-Type": "application/json" };
+        opts.body = JSON.stringify(body);
+      }
+      const res = await fetch(url, opts);
+      let data = null;
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok || (data && data.error)) {
+        let errText = data?.detail || data?.error || "요청 실패";
+        try {
+          const parsed = JSON.parse(errText);
+          if (parsed?.message) errText = parsed.message;
+        } catch (_) {}
+        showError(`요청 실패 (${data?.error || res.status}): ${errText}`);
+        pollStatus();
+        return false;
+      }
+      document.getElementById("globalErr").classList.add("hidden");
+      pollStatus();
+      return true;
+    }
+
+    async function loadChampions() {
+      const res = await fetch("/api/champions");
+      allChamps = await res.json();
+      allChamps.forEach(c => champMap[c.id] = c);
+      renderChampGrid();
+    }
+
+    async function loadRunes() {
+      const res = await fetch("/api/runes");
+      const pages = await res.json();
+      const sel = document.getElementById("runeSelect");
+      if (!pages.length) {
+        sel.innerHTML = `<option value="">룬 페이지 없음</option>`;
+        return;
+      }
+      sel.innerHTML = pages.map(p =>
+        `<option value="${p.id}" ${p.current ? "selected" : ""}>룬: ${p.name}</option>`
+      ).join("");
+      runesLoaded = true;
+    }
+
+    async function updateSpells() {
+      const s1 = parseInt(document.getElementById("spellD").value, 10);
+      const s2 = parseInt(document.getElementById("spellF").value, 10);
+      await api("/api/spells", { spell1Id: s1, spell2Id: s2 });
+    }
+
+    async function swapSpells() {
+      const d = document.getElementById("spellD");
+      const f = document.getElementById("spellF");
+      const tmp = d.value;
+      d.value = f.value;
+      f.value = tmp;
+      await updateSpells();
+    }
+
+    async function updateRune() {
+      const pageId = parseInt(document.getElementById("runeSelect").value, 10);
+      if (pageId) await api("/api/runes", { page_id: pageId });
+    }
+
+    function renderChampGrid() {
+      const grid = document.getElementById("champGrid");
+      grid.innerHTML = allChamps.map(c => `
+        <div class="champ-item" id="champ-${c.id}" data-name="${c.name.toLowerCase()}" data-eng="${c.eng.toLowerCase()}" onclick="selectChamp(${c.id})">
+          <img src="${c.img}" loading="lazy" alt="${c.name}" />
+          <span>${c.name}</span>
+        </div>
+      `).join("");
+    }
+
+    function filterChamps() {
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      document.querySelectorAll(".champ-item").forEach(el => {
+        const match = !q || el.dataset.name.includes(q) || el.dataset.eng.includes(q);
+        el.classList.toggle("hidden", !match);
+      });
+    }
+
+    function selectChamp(id) {
+      selectedChampId = id;
+      document.querySelectorAll(".champ-item.selected").forEach(el => el.classList.remove("selected"));
+      const target = document.getElementById(`champ-${id}`);
+      if (target) target.classList.add("selected");
+
+      const c = champMap[id];
+      document.getElementById("selImg").src = c.img;
+      document.getElementById("selName").textContent = c.name;
+      updateActionButtons();
+    }
+
+    function updateActionButtons() {
+      const btnHover = document.getElementById("btnHover");
+      const btnLock = document.getElementById("btnLock");
+      const hasChamp = selectedChampId !== null;
+      const hasAction = currentAction !== null;
+
+      btnHover.disabled = !(hasChamp && hasAction);
+      btnLock.disabled = !(hasChamp && hasAction && currentAction.canLock);
+
+      if (currentAction?.type === "ban") {
+        btnLock.textContent = "밴 확정";
+        btnLock.className = "btn-red";
+      } else {
+        btnLock.textContent = "픽 확정";
+        btnLock.className = "btn-gold";
+      }
+    }
+
+    async function sendAction(completed) {
+      if (!currentAction || !selectedChampId) return;
+      await api("/api/action", {
+        action_id: currentAction.id,
+        champion_id: selectedChampId,
+        completed: completed
+      });
+    }
+
+    function showSection(id) {
+      ["secDisconnected", "secNone", "secLobby", "secMatchmaking", "secReady", "secChampSelect", "secInProgress"]
+        .forEach(s => document.getElementById(s).classList.toggle("hidden", s !== id));
+    }
+
+    function renderTeams(cs) {
+      const mkRow = (cId, label, isMe = false) => {
+        const c = champMap[cId];
+        const img = c ? `<img class="mini-icon" src="${c.img}"/>` : `<div class="mini-icon"></div>`;
+        const name = c ? c.name : (label || "미선택");
+        return `<div class="team-row ${isMe ? 'me' : ''}">${img}<span>${name}</span></div>`;
+      };
+      document.getElementById("myTeamBox").innerHTML =
+        `<div class="sub" style="margin-bottom:4px;">아군</div>` +
+        cs.myTeam.map(m => mkRow(m.championId, m.position || "아군", m.isMe)).join("");
+      document.getElementById("theirTeamBox").innerHTML =
+        `<div class="sub" style="margin-bottom:4px;">적군</div>` +
+        (cs.theirTeam.length
+          ? cs.theirTeam.map(e => mkRow(e.championId, "적군")).join("")
+          : `<div class="sub" style="padding:4px 0;">비공개 / 아레나</div>`);
+
+      const unavailable = new Set([...cs.bannedIds, ...cs.pickedIds]);
+      document.querySelectorAll(".champ-item").forEach(el => {
+        const cid = parseInt(el.id.replace("champ-", ""), 10);
+        el.classList.toggle("disabled", unavailable.has(cid));
+      });
+    }
+
+    function renderAram(cs) {
+      const aramBox = document.getElementById("aramBox");
+      const draftArea = document.getElementById("draftArea");
+      const isAram = Boolean(cs.isAramLike);
+
+      if (!isAram) {
+        aramBox.classList.add("hidden");
+        draftArea.classList.remove("hidden");
+        return;
+      }
+
+      aramBox.classList.remove("hidden");
+      draftArea.classList.toggle("hidden", Boolean(cs.benchEnabled || cs.allowSubset || (cs.cardIds && cs.cardIds.length)));
+
+      const btnReroll = document.getElementById("btnReroll");
+      const canReroll = cs.rerollsRemaining > 0;
+      btnReroll.textContent = `🎲 주사위 (${cs.rerollsRemaining})`;
+      btnReroll.disabled = !canReroll;
+      btnReroll.classList.toggle("hidden", !cs.allowReroll && cs.rerollsRemaining <= 0);
+
+      const cardSection = document.getElementById("cardSection");
+      const cardList = document.getElementById("cardList");
+      const cardIds = cs.cardIds || [];
+      if (cardIds.length) {
+        cardSection.classList.remove("hidden");
+        cardList.innerHTML = cardIds.map(cid => {
+          const c = champMap[cid];
+          if (!c) return "";
+          return `
+            <div class="bench-item card-pick" onclick="api('/api/aram/pick/${cid}')">
+              <img src="${c.img}" alt="${c.name}" />
+              <span>${c.name}</span>
+            </div>`;
+        }).join("");
+      } else {
+        cardSection.classList.add("hidden");
+        cardList.innerHTML = "";
+      }
+
+      const bench = document.getElementById("benchList");
+      if (!cs.benchIds.length) {
+        bench.innerHTML = `<span class="sub">벤치에 대기 중인 챔피언이 없습니다.</span>`;
+      } else {
+        bench.innerHTML = cs.benchIds.map(cid => {
+          const c = champMap[cid];
+          if (!c) return "";
+          return `
+            <div class="bench-item" onclick="api('/api/aram/pick/${cid}')">
+              <img src="${c.img}" alt="${c.name}" />
+              <span>${c.name}</span>
+            </div>`;
+        }).join("");
+      }
+    }
+
+    async function pollStatus() {
+      try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+        const badge = document.getElementById("phaseBadge");
+
+        if (!data.connected) {
+          badge.textContent = "미연결";
+          badge.className = "badge err";
+          showSection("secDisconnected");
+          return;
+        }
+
+        const phase = data.phase;
+        badge.textContent = phase;
+        badge.className = "badge ok";
+
+        if (typeof data.autoAccept === "boolean") {
+          autoAcceptOn = data.autoAccept;
+          updateAutoAcceptBtn();
+        }
+        renderInvitations(data.invitations);
+
+        if (phase === "ReadyCheck" && lastPhase !== "ReadyCheck" && navigator.vibrate) {
+          navigator.vibrate([200, 100, 200]);
+        }
+        if (phase === "ChampSelect" && !runesLoaded) {
+          loadRunes();
+        } else if (phase !== "ChampSelect") {
+          runesLoaded = false;
+          skinsLoadedForChamp = null;
+        }
+        lastPhase = phase;
+
+        if (phase === "None") showSection("secNone");
+        else if (phase === "Lobby") {
+          showSection("secLobby");
+          const lb = data.lobby || {};
+          const isCustom = Boolean(lb.isCustom);
+          const qName = isCustom
+            ? `사용자 설정 (${lb.gameMode || "CUSTOM"})`
+            : (QUEUE_LABELS[lb.queueId] || lb.gameMode || "로비 대기 중");
+          document.getElementById("lobbyTitle").textContent = `로비 · ${qName}`;
+
+          document.getElementById("btnStartQueue").classList.toggle("hidden", isCustom);
+          document.getElementById("btnStartCustom").classList.toggle("hidden", !isCustom);
+          document.getElementById("customTeamBtns").classList.toggle("hidden", !isCustom);
+
+          const teamInfo = document.getElementById("customTeamInfo");
+          teamInfo.classList.toggle("hidden", !isCustom);
+          if (isCustom) {
+            const teamLabel = lb.myTeam === "BLUE" ? "블루팀" : lb.myTeam === "RED" ? "레드팀" : "관전/미배정";
+            teamInfo.textContent = `현재 소속: ${teamLabel} (블루 ${lb.blueCount} vs 레드 ${lb.redCount})`;
+          }
+
+          const posBox = document.getElementById("positionBox");
+          const showPos = Boolean(lb.showPositionSelector);
+          posBox.classList.toggle("hidden", !showPos);
+          if (showPos) {
+            const fEl = document.getElementById("posFirst");
+            const sEl = document.getElementById("posSecond");
+            if (document.activeElement !== fEl && document.activeElement !== sEl) {
+              lastPosFirst = lb.firstPosition || "UNSELECTED";
+              lastPosSecond = lb.secondPosition || "UNSELECTED";
+              fEl.value = lastPosFirst;
+              sEl.value = lastPosFirst === "FILL" ? "UNSELECTED" : lastPosSecond;
+              sEl.disabled = lastPosFirst === "FILL";
+            }
+          }
+        }
+        else if (phase === "Matchmaking") showSection("secMatchmaking");
+        else if (phase === "ReadyCheck") {
+          showSection("secReady");
+          badge.className = "badge warn";
+          const rc = data.ready_check;
+          if (rc) document.getElementById("readyTimer").textContent = `남은 시간: ${rc.timer}초 (${rc.response})`;
+        } else if (phase === "ChampSelect" && data.champ_select) {
+          showSection("secChampSelect");
+          const cs = data.champ_select;
+          currentAction = cs.myAction;
+
+          renderSwaps(cs.swaps);
+          if (cs.myChampionId && cs.myChampionId !== skinsLoadedForChamp) {
+            skinsLoadedForChamp = cs.myChampionId;
+            loadSkins();
+          }
+          loadChat();
+
+          const banner = document.getElementById("turnBanner");
+          const text = document.getElementById("turnText");
+          document.getElementById("turnTimer").textContent = `${cs.timeLeft}s`;
+
+          if (cs.isAramLike && !currentAction) {
+            banner.classList.remove("my-turn");
+            text.textContent = "칼바람 / 아수라장 준비 중";
+          } else if (currentAction?.canLock) {
+            banner.classList.add("my-turn");
+            text.textContent = currentAction.type === "ban" ? "내 밴 차례!" : "내 픽 차례!";
+            document.getElementById("selHint").textContent = "호버 또는 확정을 누르세요";
+          } else if (currentAction?.type === "intent") {
+            banner.classList.remove("my-turn");
+            text.textContent = `픽 대기 중 (${cs.timerPhase})`;
+            document.getElementById("selHint").textContent = "미리 픽 의향(호버) 선택 가능";
+          } else {
+            banner.classList.remove("my-turn");
+            text.textContent = `진행 중 (${cs.timerPhase})`;
+            document.getElementById("selHint").textContent = "내 차례를 기다리는 중";
+          }
+
+          if (document.activeElement.id !== "spellD") document.getElementById("spellD").value = cs.mySpells.spell1Id;
+          if (document.activeElement.id !== "spellF") document.getElementById("spellF").value = cs.mySpells.spell2Id;
+
+          renderTeams(cs);
+          renderAram(cs);
+          updateActionButtons();
+        } else {
+          showSection("secInProgress");
+          if (!lastIngameLoaded) {
+            loadIngame();
+            lastIngameLoaded = true;
+          }
+        }
+
+        if (!["InProgress", "Reconnect", "WaitingForStats", "PreEndOfGame", "EndOfGame"].includes(phase)) {
+          lastIngameLoaded = false;
+        }
+      } catch (e) {
+        document.getElementById("phaseBadge").textContent = "서버 꺼짐";
+        document.getElementById("phaseBadge").className = "badge err";
+      }
+    }
+
+    initSelects();
+    loadChampions();
+    setInterval(pollStatus, 1000);
+    pollStatus();
+  </script>
+
+  <footer class="footer-credit">
+    Built by [컴공자퇴생 정문기] · for the moonshot
+  </footer>
+</body>
+</html>

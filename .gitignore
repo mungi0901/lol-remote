@@ -1,0 +1,15 @@
+﻿# LoL Remote
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+*.spec
+cloudflared.exe
+.venv/
+venv/
+.env
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
